@@ -76,7 +76,7 @@ export default function PrView({ data }: { data: PrData }) {
           </div>
         )}
       </header>
-      {data.files.map((file) => (
+      {[...analysed, ...skipped].map((file) => (
         <FileDiff key={file.path} file={file} openAll={openAll} />
       ))}
       <footer className="pr-foot">

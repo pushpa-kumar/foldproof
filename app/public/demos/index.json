@@ -1,0 +1,52 @@
+[
+ {
+  "owner": "foldproof",
+  "repo": "synthetic",
+  "number": 1,
+  "title": "Synthetic example: two moved functions, two renames, a reformat and one real bug",
+  "agent": null,
+  "changed": 22,
+  "residual": 2,
+  "note": ""
+ },
+ {
+  "owner": "alariq",
+  "repo": "mc2",
+  "number": 24,
+  "title": "Win-build-improvements",
+  "agent": "Claude_Code",
+  "changed": 1339,
+  "residual": 609,
+  "note": ""
+ },
+ {
+  "owner": "DistroAV",
+  "repo": "DistroAV",
+  "number": 1351,
+  "title": "RFP: feat: allow selecting audio tracks for NDI output",
+  "agent": "OpenAI_Codex",
+  "changed": 296,
+  "residual": 150,
+  "note": ""
+ },
+ {
+  "owner": "Vector35",
+  "repo": "debugger",
+  "number": 848,
+  "title": "Add UI and C++/Python API to time travel to a given timestamp with custom icon",
+  "agent": "Copilot",
+  "changed": 532,
+  "residual": 444,
+  "note": ""
+ },
+ {
+  "owner": "OpenAtom-Linyaps",
+  "repo": "linyaps",
+  "number": 1380,
+  "title": "Fix three code bugs",
+  "agent": "Cursor",
+  "changed": 45,
+  "residual": 39,
+  "note": ""
+ }
+]
