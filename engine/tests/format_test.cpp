@@ -185,3 +185,19 @@ TEST(Format, ReformatBelowLineObserverIsEquivalent) {
     std::string new_src = "int g() { return __LINE__; }\nint f() {\n  return 1;\n}\n";
     EXPECT_TRUE(check(old_src, new_src).ok);
 }
+
+TEST(Format, IncludeSpacingIsEquivalent) {
+    EXPECT_TRUE(check("#include<vector>\nint x;\n", "#include <vector>\nint x;\n").ok);
+    EXPECT_TRUE(check("#if  1\nint x;\n#endif\n", "#if 1\nint x;\n#endif\n").ok);
+}
+
+TEST(Format, DefineBodySpacingStaysStrict) {
+    std::string prelude = "#define STR(x) #x\n#define XSTR(x) STR(x)\n";
+    std::string old_src = prelude + "#define A a+b\nconst char* s = XSTR(A);\n";
+    std::string new_src = prelude + "#define A a + b\nconst char* s = XSTR(A);\n";
+    EXPECT_FALSE(check(old_src, new_src).ok);
+}
+
+TEST(Format, PragmaSpacingStaysStrict) {
+    EXPECT_FALSE(check("#pragma pack(push,1)\nint x;\n", "#pragma pack(push, 1)\nint x;\n").ok);
+}

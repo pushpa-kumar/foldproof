@@ -28,6 +28,7 @@ struct Tok {
     bool line_start;
     bool in_directive;
     bool directive_start;
+    bool directive_spacing;
     bool directive_end;
     bool skipped;
     bool macro_arg_sensitive;

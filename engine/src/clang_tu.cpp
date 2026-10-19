@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdio>
 #include <cstdlib>
+#include <set>
 
 std::string cx_string(CXString str) {
     const char* raw = clang_getCString(str);
@@ -195,6 +196,8 @@ void TranslationUnit::lex() {
     bool in_directive = false;
     bool line_has_code = false;
     bool line_comment_newline = false;
+    bool spacing_matters = true;
+    bool expect_directive_name = false;
     for (unsigned i = 0; i < count; ++i) {
         CXSourceRange extent = clang_getTokenExtent(tu_, raw[i]);
         unsigned tok_begin = 0, tok_end = 0;
@@ -219,14 +222,23 @@ void TranslationUnit::lex() {
         }
         if (tok.kind == TokKind::Comment) {
             if (has_newline(tok.spelling)) line_comment_newline = true;
+        } else if (expect_directive_name) {
+            static const std::set<std::string> layout_free{"include", "include_next", "import", "if",    "ifdef",
+                                                           "ifndef",  "elif",         "elifdef", "elifndef", "else",
+                                                           "endif",   "undef"};
+            spacing_matters = !layout_free.count(tok.spelling);
+            expect_directive_name = false;
         } else if (!line_has_code) {
             line_has_code = true;
             if (is_hash(tok) && !line_comment_newline) {
                 in_directive = true;
                 tok.directive_start = true;
+                expect_directive_name = true;
+                spacing_matters = true;
             }
         }
         tok.in_directive = in_directive;
+        tok.directive_spacing = in_directive && spacing_matters;
         tokens_.push_back(std::move(tok));
         prev_end = tok_end;
     }

@@ -89,7 +89,7 @@ CheckResult compare_tokens(const Tok& old_tok, const Tok& new_tok, bool ignore_i
             old_tok.line_start != new_tok.line_start)
             return fail("layout changed inside an inactive #if block (may be active in another build)", &old_tok, &new_tok);
     }
-    bool directive_spacing = old_tok.in_directive && !old_tok.directive_start;
+    bool directive_spacing = (old_tok.directive_spacing || new_tok.directive_spacing) && !old_tok.directive_start;
     if (directive_spacing && old_tok.space_before != new_tok.space_before)
         return fail("whitespace changed inside a preprocessor directive", &old_tok, &new_tok);
     bool macro_spacing = old_tok.macro_arg_sensitive || new_tok.macro_arg_sensitive;
