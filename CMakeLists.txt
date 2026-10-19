@@ -47,7 +47,8 @@ add_library(foldproof_core STATIC
   engine/src/version.cpp
   engine/src/clang_tu.cpp
   engine/src/format_check.cpp
-  engine/src/rename_check.cpp)
+  engine/src/rename_check.cpp
+  engine/src/move_check.cpp)
 target_include_directories(foldproof_core PUBLIC engine/src)
 target_compile_definitions(foldproof_core PRIVATE FOLDPROOF_CLANG_RESOURCE_DIR="${CLANG_RESOURCE_DIR}")
 target_include_directories(foldproof_core SYSTEM PUBLIC ${LLVM_PREFIX}/include)
