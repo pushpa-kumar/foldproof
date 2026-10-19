@@ -37,13 +37,18 @@ target_compile_definitions(ts_runtime PRIVATE _POSIX_C_SOURCE=200112L _DEFAULT_S
 set(LLVM_PREFIX "/opt/homebrew/opt/llvm" CACHE PATH "LLVM install providing libclang")
 unset(LIBCLANG CACHE)
 find_library(LIBCLANG clang PATHS ${LLVM_PREFIX}/lib NO_DEFAULT_PATH REQUIRED)
+execute_process(COMMAND ${LLVM_PREFIX}/bin/clang -print-resource-dir
+  OUTPUT_VARIABLE CLANG_RESOURCE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(foldproof_warnings INTERFACE)
 target_compile_options(foldproof_warnings INTERFACE -Wall -Wextra -Wpedantic -Werror)
 
 add_library(foldproof_core STATIC
-  engine/src/version.cpp)
+  engine/src/version.cpp
+  engine/src/clang_tu.cpp
+  engine/src/format_check.cpp)
 target_include_directories(foldproof_core PUBLIC engine/src)
+target_compile_definitions(foldproof_core PRIVATE FOLDPROOF_CLANG_RESOURCE_DIR="${CLANG_RESOURCE_DIR}")
 target_include_directories(foldproof_core SYSTEM PUBLIC ${LLVM_PREFIX}/include)
 target_link_libraries(foldproof_core PUBLIC ${LIBCLANG} ts_runtime PRIVATE foldproof_warnings)
 
