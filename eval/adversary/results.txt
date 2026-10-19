@@ -1,0 +1,27 @@
+category   rule                         cases behav.chg folded false  lines->review
+near_miss  nm_counter_swap                 24        24      0     0    163->163   
+near_miss  nm_directive_space              34        34     27     0    203->68    
+near_miss  nm_lambda_shadow                24        24     23     0    163->48    
+near_miss  nm_move_across_macro            40        40     28     0    300->160   
+near_miss  nm_move_line                    26        26      0     0    177->177   
+near_miss  nm_move_past_overload           28        28      0     0    156->156   
+near_miss  nm_operator_move                36        36      0     0    157->157   
+near_miss  nm_pragma_region                19        19     18     0    128->38    
+near_miss  nm_reformat_above_line          33        33     25     0    257->132   
+near_miss  nm_reformat_flip                32        32     25     0    285->160   
+near_miss  nm_reformat_literal             32        32     26     0    258->128   
+near_miss  nm_rename_capture_global        40        40     19     0    255->160   
+near_miss  nm_rename_in_stringize          39        39     28     0    296->156   
+near_miss  nm_rename_into_macro_ref        37        37     24     0    268->148   
+near_miss  nm_rename_partial               40        40     27     0    295->160   
+near_miss  nm_shadow_nested                39        39     30     0    228->78    
+near_miss  nm_string_space                 25        25     24     0    220->100   
+near_miss  nm_stringize_spacing            40        40     22     0    270->160   
+near_miss  nm_swap_uses                    39        39     28     0    218->78    
+near_miss  nm_token_paste                  22        22     21     0    149->44    
+safe       safe_blank_lines                40         0     40     0    135->0     
+safe       safe_move                       38         0     38     0    196->0     
+safe       safe_move_rename                40         0     40     0    360->0     
+safe       safe_reformat                   40         0     40     0    325->0     
+safe       safe_rename                     40         0     40     0    275->0     
+TOTAL                                     847       649    593     0   5737->2471  
