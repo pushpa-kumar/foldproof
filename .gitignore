@@ -4,3 +4,5 @@ node_modules/
 .DS_Store
 eval/cache/
 compile_commands.json
+eval/adversary/results.json
+__pycache__/

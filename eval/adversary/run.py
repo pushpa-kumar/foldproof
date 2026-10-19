@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from generate import generate  # noqa: E402
 
-CXX = "/opt/homebrew/opt/llvm/bin/clang++"
+CXX = os.path.join(os.environ.get("LLVM_PREFIX", "/opt/homebrew/opt/llvm"), "bin/clang++")
 
 
 def merge(old, new, hunks):
