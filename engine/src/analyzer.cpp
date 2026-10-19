@@ -37,7 +37,7 @@ Analysis analyze(const std::string& path, const std::string& old_text, const std
     analysis.path = path;
     auto old_lines = split_lines(old_text);
     auto new_lines = split_lines(new_text);
-    bool diffed = line_diff(old_lines, new_lines, analysis.hunks);
+    bool diffed = whitespace_aware_diff(old_lines, new_lines, analysis.hunks);
     if (!diffed) {
         analysis.hunks = {{0, old_lines.size(), 0, new_lines.size()}};
         analysis.fallback = "diff too large to analyse";

@@ -114,67 +114,90 @@ private:
     std::set<size_t> comment_rows_;
 };
 
-static std::string old_lines_of(const std::string& text, size_t row) {
-    size_t start = 0;
-    for (size_t i = 0; i < row && start != std::string::npos; ++i) {
-        start = text.find('\n', start);
-        if (start != std::string::npos) ++start;
+
+static void split_replacement(const Hunk& hunk, const std::vector<size_t>& old_cuts, const std::vector<size_t>& new_cuts,
+                              std::vector<Hunk>& refined) {
+    std::vector<size_t> old_points{hunk.old_begin}, new_points{hunk.new_begin};
+    for (size_t cut : old_cuts)
+        if (cut > hunk.old_begin && cut < hunk.old_end) old_points.push_back(cut);
+    for (size_t cut : new_cuts)
+        if (cut > hunk.new_begin && cut < hunk.new_end) new_points.push_back(cut);
+    old_points.push_back(hunk.old_end);
+    new_points.push_back(hunk.new_end);
+    if (old_points.size() != new_points.size()) {
+        refined.push_back(hunk);
+        return;
     }
-    if (start == std::string::npos) return "";
-    size_t end = text.find('\n', start);
-    return text.substr(start, end == std::string::npos ? std::string::npos : end - start + 1);
+    for (size_t i = 0; i + 1 < old_points.size(); ++i)
+        refined.push_back({old_points[i], old_points[i + 1], new_points[i], new_points[i + 1]});
+}
+
+static void split_pure(const Hunk& hunk, const std::vector<size_t>& old_cuts, const std::vector<size_t>& new_cuts,
+                       std::vector<Hunk>& refined) {
+    bool deletion = hunk.new_begin == hunk.new_end;
+    size_t begin = deletion ? hunk.old_begin : hunk.new_begin;
+    size_t end = deletion ? hunk.old_end : hunk.new_end;
+    std::vector<size_t> points{begin};
+    for (size_t cut : deletion ? old_cuts : new_cuts)
+        if (cut > begin && cut < end) points.push_back(cut);
+    points.push_back(end);
+    for (size_t i = 0; i + 1 < points.size(); ++i) {
+        if (deletion)
+            refined.push_back({points[i], points[i + 1], hunk.new_begin, hunk.new_end});
+        else
+            refined.push_back({hunk.old_begin, hunk.old_end, points[i], points[i + 1]});
+    }
+}
+
+static std::string strip_spaces(const std::string& line) {
+    std::string out;
+    for (char ch : line)
+        if (!std::isspace(static_cast<unsigned char>(ch))) out.push_back(ch);
+    return out;
 }
 
 std::vector<Hunk> refine_hunks(const std::string& old_text, const std::string& new_text, const std::vector<Hunk>& hunks) {
     SyntaxTree old_tree(old_text), new_tree(new_text);
     auto old_cuts = old_tree.unit_boundaries();
     auto new_cuts = new_tree.unit_boundaries();
+    auto old_lines = split_lines(old_text);
+    auto new_lines = split_lines(new_text);
     std::vector<Hunk> refined;
+    auto place = [&](const Hunk& piece) {
+        if (piece.old_begin == piece.old_end && piece.new_begin == piece.new_end) return;
+        if (piece.old_begin == piece.old_end || piece.new_begin == piece.new_end)
+            split_pure(piece, old_cuts, new_cuts, refined);
+        else
+            split_replacement(piece, old_cuts, new_cuts, refined);
+    };
     for (const Hunk& hunk : hunks) {
-        bool deletion = hunk.new_begin == hunk.new_end;
-        bool insertion = hunk.old_begin == hunk.old_end;
-        if (!deletion && !insertion) {
-            std::vector<size_t> old_points{hunk.old_begin}, new_points{hunk.new_begin};
-            for (size_t cut : old_cuts)
-                if (cut > hunk.old_begin && cut < hunk.old_end) old_points.push_back(cut);
-            for (size_t cut : new_cuts)
-                if (cut > hunk.new_begin && cut < hunk.new_end) new_points.push_back(cut);
-            old_points.push_back(hunk.old_end);
-            new_points.push_back(hunk.new_end);
-            if (old_points.size() != new_points.size() && hunk.old_end - hunk.old_begin == hunk.new_end - hunk.new_begin) {
-                old_points.clear();
-                new_points.clear();
-                for (size_t i = 0; i <= hunk.old_end - hunk.old_begin; ++i) {
-                    old_points.push_back(hunk.old_begin + i);
-                    new_points.push_back(hunk.new_begin + i);
-                }
-            }
-            if (old_points.size() != new_points.size()) {
-                refined.push_back(hunk);
-                continue;
-            }
-            bool per_line = old_points.size() == hunk.old_end - hunk.old_begin + 1 &&
-                            old_points.size() > 2;
-            for (size_t i = 0; i + 1 < old_points.size(); ++i) {
-                if (per_line && old_points[i + 1] - old_points[i] == 1 &&
-                    old_lines_of(old_text, old_points[i]) == old_lines_of(new_text, new_points[i]))
-                    continue;
-                refined.push_back({old_points[i], old_points[i + 1], new_points[i], new_points[i + 1]});
-            }
+        if (hunk.old_begin == hunk.old_end || hunk.new_begin == hunk.new_end) {
+            place(hunk);
             continue;
         }
-        size_t begin = deletion ? hunk.old_begin : hunk.new_begin;
-        size_t end = deletion ? hunk.old_end : hunk.new_end;
-        std::vector<size_t> points{begin};
-        for (size_t cut : deletion ? old_cuts : new_cuts)
-            if (cut > begin && cut < end) points.push_back(cut);
-        points.push_back(end);
-        for (size_t i = 0; i + 1 < points.size(); ++i) {
-            if (deletion)
-                refined.push_back({points[i], points[i + 1], hunk.new_begin, hunk.new_end});
-            else
-                refined.push_back({hunk.old_begin, hunk.old_end, points[i], points[i + 1]});
+        std::vector<std::string> old_norm, new_norm;
+        for (size_t i = hunk.old_begin; i < hunk.old_end; ++i) old_norm.push_back(strip_spaces(old_lines[i]));
+        for (size_t i = hunk.new_begin; i < hunk.new_end; ++i) new_norm.push_back(strip_spaces(new_lines[i]));
+        std::vector<Hunk> inner;
+        if (!line_diff(old_norm, new_norm, inner, 2000)) {
+            place(hunk);
+            continue;
         }
+        size_t old_pos = 0, new_pos = 0;
+        auto matched_until = [&](size_t old_stop) {
+            for (; old_pos < old_stop; ++old_pos, ++new_pos) {
+                size_t o = hunk.old_begin + old_pos, n = hunk.new_begin + new_pos;
+                if (old_lines[o] != new_lines[n]) refined.push_back({o, o + 1, n, n + 1});
+            }
+        };
+        for (const Hunk& gap : inner) {
+            matched_until(gap.old_begin);
+            place({hunk.old_begin + gap.old_begin, hunk.old_begin + gap.old_end, hunk.new_begin + gap.new_begin,
+                   hunk.new_begin + gap.new_end});
+            old_pos = gap.old_end;
+            new_pos = gap.new_end;
+        }
+        matched_until(old_norm.size());
     }
     return refined;
 }

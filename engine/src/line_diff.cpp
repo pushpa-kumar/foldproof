@@ -74,6 +74,36 @@ bool line_diff(const std::vector<std::string>& old_lines, const std::vector<std:
     return true;
 }
 
+static std::string strip_spaces(const std::string& line) {
+    std::string out;
+    for (char ch : line)
+        if (ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' && ch != '\v' && ch != '\f') out.push_back(ch);
+    return out;
+}
+
+bool whitespace_aware_diff(const std::vector<std::string>& old_lines, const std::vector<std::string>& new_lines,
+                           std::vector<Hunk>& hunks, size_t max_edits) {
+    std::vector<std::string> old_norm, new_norm;
+    for (const auto& line : old_lines) old_norm.push_back(strip_spaces(line));
+    for (const auto& line : new_lines) new_norm.push_back(strip_spaces(line));
+    std::vector<Hunk> coarse;
+    if (!line_diff(old_norm, new_norm, coarse, max_edits)) return false;
+    hunks.clear();
+    size_t old_pos = 0, new_pos = 0;
+    auto matched_until = [&](size_t old_stop) {
+        for (; old_pos < old_stop; ++old_pos, ++new_pos)
+            if (old_lines[old_pos] != new_lines[new_pos]) hunks.push_back({old_pos, old_pos + 1, new_pos, new_pos + 1});
+    };
+    for (const Hunk& hunk : coarse) {
+        matched_until(hunk.old_begin);
+        hunks.push_back(hunk);
+        old_pos = hunk.old_end;
+        new_pos = hunk.new_end;
+    }
+    matched_until(old_lines.size());
+    return true;
+}
+
 std::string merge_hunks(const std::vector<std::string>& old_lines, const std::vector<std::string>& new_lines,
                         const std::vector<Hunk>& hunks, const std::vector<bool>& keep_old) {
     std::string out;

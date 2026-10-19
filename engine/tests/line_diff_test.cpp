@@ -69,3 +69,30 @@ TEST(LineDiff, EditLimitReportsFailure) {
     std::vector<Hunk> hunks;
     EXPECT_FALSE(line_diff(old_lines, new_lines, hunks, 50));
 }
+
+TEST(LineDiff, WhitespaceAwareDiffPairsReindentedLines) {
+    auto old_lines = split_lines("f();\n}\n  g();\n  h();\n}\n");
+    auto new_lines = split_lines("f();\n}\ng();\nh();\n}\n");
+    std::vector<Hunk> hunks;
+    ASSERT_TRUE(whitespace_aware_diff(old_lines, new_lines, hunks));
+    ASSERT_EQ(hunks.size(), 2u);
+    for (const Hunk& hunk : hunks) {
+        EXPECT_EQ(hunk.old_end - hunk.old_begin, 1u);
+        EXPECT_EQ(hunk.new_end - hunk.new_begin, 1u);
+    }
+}
+
+TEST(LineDiff, WhitespaceAwareDiffRoundTrips) {
+    std::mt19937 rng(11);
+    const char* pool[] = {"a\n", " a\n", "b\n", "  b\n", "}\n", "\n"};
+    for (int round = 0; round < 300; ++round) {
+        std::vector<std::string> old_lines, new_lines;
+        for (int i = 0, n = rng() % 25; i < n; ++i) old_lines.push_back(pool[rng() % 6]);
+        for (int i = 0, n = rng() % 25; i < n; ++i) new_lines.push_back(pool[rng() % 6]);
+        std::vector<Hunk> hunks;
+        ASSERT_TRUE(whitespace_aware_diff(old_lines, new_lines, hunks));
+        std::vector<bool> all_old(hunks.size(), true), all_new(hunks.size(), false);
+        EXPECT_EQ(merge_hunks(old_lines, new_lines, hunks, all_old), join(old_lines));
+        EXPECT_EQ(merge_hunks(old_lines, new_lines, hunks, all_new), join(new_lines));
+    }
+}
