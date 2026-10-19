@@ -32,25 +32,27 @@ target_include_directories(ts_runtime
   PUBLIC ${tree_sitter_SOURCE_DIR}/lib/include
   PRIVATE ${tree_sitter_SOURCE_DIR}/lib/src ${tree_sitter_cpp_SOURCE_DIR}/src)
 set_target_properties(ts_runtime PROPERTIES C_STANDARD 11)
+target_compile_definitions(ts_runtime PRIVATE _POSIX_C_SOURCE=200112L _DEFAULT_SOURCE)
 
 set(LLVM_PREFIX "/opt/homebrew/opt/llvm" CACHE PATH "LLVM install providing libclang")
+unset(LIBCLANG CACHE)
 find_library(LIBCLANG clang PATHS ${LLVM_PREFIX}/lib NO_DEFAULT_PATH REQUIRED)
+
+add_library(foldproof_warnings INTERFACE)
+target_compile_options(foldproof_warnings INTERFACE -Wall -Wextra -Wpedantic -Werror)
 
 add_library(foldproof_core STATIC
   engine/src/version.cpp)
-target_include_directories(foldproof_core PUBLIC engine/src ${LLVM_PREFIX}/include)
-target_link_libraries(foldproof_core PUBLIC ${LIBCLANG} ts_runtime)
-target_compile_options(foldproof_core PRIVATE -Wall -Wextra -Wpedantic)
-set_target_properties(foldproof_core PROPERTIES BUILD_RPATH ${LLVM_PREFIX}/lib)
+target_include_directories(foldproof_core PUBLIC engine/src)
+target_include_directories(foldproof_core SYSTEM PUBLIC ${LLVM_PREFIX}/include)
+target_link_libraries(foldproof_core PUBLIC ${LIBCLANG} ts_runtime PRIVATE foldproof_warnings)
 
 add_executable(foldproof engine/cli/main.cpp)
-target_link_libraries(foldproof PRIVATE foldproof_core)
-set_target_properties(foldproof PROPERTIES BUILD_RPATH ${LLVM_PREFIX}/lib)
+target_link_libraries(foldproof PRIVATE foldproof_core foldproof_warnings)
 
 enable_testing()
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS engine/tests/*_test.cpp)
 add_executable(foldproof_tests ${TEST_SOURCES})
-target_link_libraries(foldproof_tests PRIVATE foldproof_core GTest::gtest_main)
-set_target_properties(foldproof_tests PROPERTIES BUILD_RPATH ${LLVM_PREFIX}/lib)
+target_link_libraries(foldproof_tests PRIVATE foldproof_core foldproof_warnings GTest::gtest_main)
 include(GoogleTest)
-gtest_discover_tests(foldproof_tests DISCOVERY_TIMEOUT 60)
+gtest_discover_tests(foldproof_tests DISCOVERY_TIMEOUT 60 DISCOVERY_MODE PRE_TEST)
