@@ -149,7 +149,7 @@ static bool macro_like_callee(const Tok& tok) {
 
 static int macro_paren_balance(CXTranslationUnit tu, CXCursor expansion) {
     CXCursor def = clang_getCursorReferenced(expansion);
-    if (clang_Cursor_isNull(def)) return 1;
+    if (clang_Cursor_isNull(def)) return 0;
     CXToken* raw = nullptr;
     unsigned count = 0;
     clang_tokenize(tu, clang_getCursorExtent(def), &raw, &count);

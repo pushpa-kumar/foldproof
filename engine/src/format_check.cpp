@@ -34,6 +34,38 @@ std::string normalize_comment(const std::string& text) {
     return out;
 }
 
+std::set<std::string> line_sensitive_names(const TranslationUnit& tu) {
+    std::set<std::string> names{"__LINE__", "__builtin_LINE", "source_location"};
+    std::map<std::string, std::vector<std::string>> bodies;
+    const auto& toks = tu.tokens();
+    for (size_t i = 0; i + 2 < toks.size(); ++i) {
+        if (!toks[i].directive_start || toks[i + 1].spelling != "define") continue;
+        auto& body = bodies[toks[i + 2].spelling];
+        for (size_t j = i + 3; j < toks.size() && toks[j].in_directive && !toks[j].directive_start; ++j) {
+            body.push_back(toks[j].spelling);
+            if (toks[j].directive_end) break;
+        }
+    }
+    for (bool grew = true; grew;) {
+        grew = false;
+        for (const auto& [name, body] : bodies)
+            if (!names.count(name))
+                for (const auto& spelling : body)
+                    if (names.count(spelling)) {
+                        names.insert(name);
+                        grew = true;
+                        break;
+                    }
+    }
+    return names;
+}
+
+CheckResult compare_line_sensitive(const Tok& old_tok, const Tok& new_tok, const std::set<std::string>& names) {
+    if (old_tok.in_directive || !names.count(old_tok.spelling) || old_tok.line == new_tok.line)
+        return {true, "", 0, 0};
+    return {false, "'" + old_tok.spelling + "' would report a different line number", old_tok.line, new_tok.line};
+}
+
 static CheckResult fail(const std::string& reason, const Tok* old_tok, const Tok* new_tok) {
     return {false, reason, old_tok ? old_tok->line : 0, new_tok ? new_tok->line : 0};
 }
@@ -71,8 +103,10 @@ CheckResult format_equivalent(const TranslationUnit& old_tu, const TranslationUn
     const auto& old_toks = old_tu.tokens();
     const auto& new_toks = new_tu.tokens();
     size_t count = std::min(old_toks.size(), new_toks.size());
+    std::set<std::string> sensitive = line_sensitive_names(new_tu);
     for (size_t i = 0; i < count; ++i) {
         CheckResult result = compare_tokens(old_toks[i], new_toks[i], false);
+        if (result.ok) result = compare_line_sensitive(old_toks[i], new_toks[i], sensitive);
         if (!result.ok) return result;
     }
     if (old_toks.size() != new_toks.size()) {

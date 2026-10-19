@@ -173,3 +173,15 @@ TEST(Format, BalancedMacroDoesNotOverreach) {
     std::string new_src = "#define TWICE(v) ((v) * 2)\nint f(int a) { return TWICE(a) + a * 3; }\n";
     EXPECT_TRUE(check(old_src, new_src).ok);
 }
+
+TEST(Format, ReformatAboveLineObserverIsRejected) {
+    std::string old_src = "int f(){return 1;}\nint g() { return __LINE__; }\n";
+    std::string new_src = "int f() {\n  return 1;\n}\nint g() { return __LINE__; }\n";
+    EXPECT_FALSE(check(old_src, new_src).ok);
+}
+
+TEST(Format, ReformatBelowLineObserverIsEquivalent) {
+    std::string old_src = "int g() { return __LINE__; }\nint f(){return 1;}\n";
+    std::string new_src = "int g() { return __LINE__; }\nint f() {\n  return 1;\n}\n";
+    EXPECT_TRUE(check(old_src, new_src).ok);
+}

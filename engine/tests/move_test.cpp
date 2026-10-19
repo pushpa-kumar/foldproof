@@ -176,3 +176,18 @@ TEST(Move, FirstFunctionAfterIncludesCanMove) {
     MoveResult result = check(old_src, new_src, {"f"});
     EXPECT_TRUE(result.check.ok) << result.check.reason;
 }
+
+TEST(Move, MovePushingLineObserverIsRejected) {
+    std::string old_src = "int a() { return 1; }\nint b() { return __LINE__; }\n";
+    std::string new_src = "int b() { return __LINE__; }\nint a() { return 1; }\n";
+    MoveResult result = check(old_src, new_src, {"a"});
+    EXPECT_FALSE(result.check.ok);
+    EXPECT_NE(result.check.reason.find("line number"), std::string::npos) << result.check.reason;
+}
+
+TEST(Move, MacroWrappingLineIsTracked) {
+    std::string prelude = "#define HERE() __LINE__\n";
+    std::string old_src = prelude + "int a() { return 1; }\nint b() { return HERE(); }\n";
+    std::string new_src = prelude + "int b() { return HERE(); }\nint a() { return 1; }\n";
+    EXPECT_FALSE(check(old_src, new_src, {"a"}).check.ok);
+}

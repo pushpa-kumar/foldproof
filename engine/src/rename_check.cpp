@@ -187,6 +187,8 @@ RenameResult rename_equivalent(const TranslationUnit& old_tu, const TranslationU
         return fail("token order does not cover the file", nullptr, nullptr);
 
     std::map<unsigned, size_t> old_ids, new_ids, old_decls, new_decls;
+    std::set<std::string> line_sensitive = line_sensitive_names(old_tu);
+    for (const auto& name : line_sensitive_names(new_tu)) line_sensitive.insert(name);
     std::map<size_t, size_t> entry_of_id;
     std::map<unsigned, std::pair<CXCursor, CXCursor>> touched;
     std::map<unsigned, std::set<std::string>> touched_names;
@@ -240,6 +242,7 @@ RenameResult rename_equivalent(const TranslationUnit& old_tu, const TranslationU
                 return fail("'" + new_tok.spelling + "' now resolves to a different operator or function", &old_tok, &new_tok);
         }
         CheckResult layout = compare_tokens(old_tok, new_tok, true);
+        if (layout.ok) layout = compare_line_sensitive(old_tok, new_tok, line_sensitive);
         if (!layout.ok) {
             result.check = layout;
             result.renames.clear();
