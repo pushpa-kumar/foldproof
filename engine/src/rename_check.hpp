@@ -7,6 +7,7 @@
 
 struct MacroInfo {
     std::vector<std::string> identifiers;
+    std::vector<std::string> keywords;
     bool pastes_or_stringizes = false;
 };
 
@@ -22,6 +23,7 @@ struct RenameEntry {
     std::string old_name;
     std::string new_name;
     unsigned sites;
+    std::vector<unsigned> new_offsets;
 };
 
 struct RenameResult {

@@ -73,8 +73,9 @@ MacroTable collect_macros(const TranslationUnit& tu) {
             for (unsigned i = 1; i < count; ++i) {
                 std::string spelling = cx_string(clang_getTokenSpelling(raw_tu, raw[i]));
                 if (is_hash_spelling(spelling)) info.pastes_or_stringizes = true;
-                if (clang_getTokenKind(raw[i]) == CXToken_Identifier || clang_getTokenKind(raw[i]) == CXToken_Keyword)
+                if (clang_getTokenKind(raw[i]) == CXToken_Identifier)
                     info.identifiers.push_back(spelling);
+                if (clang_getTokenKind(raw[i]) == CXToken_Keyword) info.keywords.push_back(spelling);
             }
             clang_disposeTokens(raw_tu, raw, count);
             return CXChildVisit_Continue;
@@ -115,6 +116,8 @@ static std::string unsafe_macro_reason(const MacroTable& table, const std::strin
             if ((table.defined.count(ident) || table.conditional.count(ident)) && seen.insert(ident).second)
                 stack.push_back(ident);
         }
+        for (const auto& keyword : it->second.keywords)
+            if (table.defined.count(keyword) && seen.insert(keyword).second) stack.push_back(keyword);
     }
     return "";
 }
@@ -131,8 +134,9 @@ static CheckResult check_function_body(const TranslationUnit& tu, CXCursor funct
         if (tok.in_directive || tok.skipped)
             return {false, "preprocessor directive inside '" + fn_name + "'", tok.line, tok.line};
         bool expansion = clang_getCursorKind(tok.cursor) == CXCursor_MacroExpansion;
-        bool macro_name = (tok.kind == TokKind::Ident || tok.kind == TokKind::Keyword) &&
-                          (macros.defined.count(tok.spelling) || macros.conditional.count(tok.spelling));
+        bool macro_name = (tok.kind == TokKind::Ident &&
+                           (macros.defined.count(tok.spelling) || macros.conditional.count(tok.spelling))) ||
+                          (tok.kind == TokKind::Keyword && macros.defined.count(tok.spelling));
         if (!expansion && !macro_name) continue;
         std::string reason = unsafe_macro_reason(macros, tok.spelling, names);
         if (!reason.empty()) return {false, reason, tok.line, tok.line};
@@ -203,11 +207,12 @@ RenameResult rename_equivalent(const TranslationUnit& old_tu, const TranslationU
                     auto [it, inserted] = entry_of_id.emplace(old_id, result.renames.size());
                     if (inserted)
                         result.renames.push_back(
-                            {cx_string(clang_getCursorSpelling(old_bind.function)), old_tok.spelling, new_tok.spelling, 0});
+                            {cx_string(clang_getCursorSpelling(old_bind.function)), old_tok.spelling, new_tok.spelling, 0, {}});
                     RenameEntry& entry = result.renames[it->second];
                     if (entry.old_name != old_tok.spelling || entry.new_name != new_tok.spelling)
                         return fail("inconsistent rename of '" + old_tok.spelling + "'", &old_tok, &new_tok);
                     ++entry.sites;
+                    entry.new_offsets.push_back(new_tok.begin);
                     unsigned key = extent_offsets(old_bind.function).first;
                     touched.emplace(key, std::make_pair(old_bind.function, new_bind.function));
                     touched_names[key].insert(old_tok.spelling);

@@ -48,7 +48,10 @@ add_library(foldproof_core STATIC
   engine/src/clang_tu.cpp
   engine/src/format_check.cpp
   engine/src/rename_check.cpp
-  engine/src/move_check.cpp)
+  engine/src/move_check.cpp
+  engine/src/line_diff.cpp
+  engine/src/proposer.cpp
+  engine/src/analyzer.cpp)
 target_include_directories(foldproof_core PUBLIC engine/src)
 target_compile_definitions(foldproof_core PRIVATE FOLDPROOF_CLANG_RESOURCE_DIR="${CLANG_RESOURCE_DIR}")
 target_include_directories(foldproof_core SYSTEM PUBLIC ${LLVM_PREFIX}/include)
@@ -61,5 +64,6 @@ enable_testing()
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS engine/tests/*_test.cpp)
 add_executable(foldproof_tests ${TEST_SOURCES})
 target_link_libraries(foldproof_tests PRIVATE foldproof_core foldproof_warnings GTest::gtest_main)
+target_compile_definitions(foldproof_tests PRIVATE FOLDPROOF_FIXTURES="${CMAKE_SOURCE_DIR}/engine/tests/fixtures")
 include(GoogleTest)
 gtest_discover_tests(foldproof_tests DISCOVERY_TIMEOUT 60 DISCOVERY_MODE PRE_TEST)

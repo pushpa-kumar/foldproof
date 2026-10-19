@@ -156,7 +156,7 @@ MoveResult move_equivalent(const TranslationUnit& old_tu, const TranslationUnit&
         return MoveResult{{false, reason, old_line, new_line}, {}};
     };
     if (!old_tu.ok() || !new_tu.ok()) return fail("clang could not parse the file", 0, 0);
-    if (error_messages(old_tu) != error_messages(new_tu)) return fail("compiler errors differ after the move", 0, 0);
+    if (error_messages(old_tu) != error_messages(new_tu)) return fail("compiler errors differ between the reviewed and the new file", 0, 0);
     if (!moved_functions.empty() && (uses_counter(old_tu) || uses_counter(new_tu)))
         return fail("__COUNTER__ values depend on declaration order", 0, 0);
 
